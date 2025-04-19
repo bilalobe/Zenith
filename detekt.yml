@@ -1,0 +1,130 @@
+build:
+  maxIssues: 10 # Fail build if more issues are found
+  weights:
+    complexity: 2
+    potential-bugs: 3
+
+config:
+  validation: true # Validate configuration file structure
+  # Exclude generated files, common libraries, etc.
+  excludes: "**/generated/**,**/build/**,**/.gradle/**,**/R.class"
+
+processors:
+  active: true
+  # exclude:
+  #   - FunctionCountProcessor # Example: exclude a specific processor
+
+console-reports:
+  active: true
+  # exclude:
+  #   - ProjectStatisticsReport # Example: exclude a specific report
+
+output-reports:
+  active: true
+  exclude: [ ]
+  # Example: Enable XML and HTML reports
+  # xml:
+  #   path: build/reports/detekt/detekt.xml
+  # html:
+  #   path: build/reports/detekt/detekt.html
+
+potential-bugs:
+  active: true
+  # Example: Configure specific rules
+  # EqualsWithHashCodeExist:
+  #   active: true
+  # ExplicitGarbageCollectionCall:
+  #   active: true
+
+style:
+  active: true
+  # Example: Configure specific style rules
+  # MaxLineLength:
+  #   active: true
+  #   maxLineLength: 120 # Adjust line length as needed
+  #   excludePackageStatements: true
+  #   excludeImportStatements: true
+  #   excludeCommentStatements: true
+  # NoWildcardImports:
+  #   active: true
+  # MagicNumber:
+  #   active: true
+  #   ignoreNumbers: '-1, 0, 1, 2, 100, 1000' # Allow common numbers
+  #   ignorePropertyDeclaration: true
+  #   ignoreCompanionObjectPropertyDeclaration: true
+  #   ignoreAnnotation: true
+  #   ignoreNamedArgument: true
+  #   ignoreEnums: true
+  #   ignoreRanges: true
+  #   ignoreLocalVariableDeclaration: true
+  #   ignoreConstantDeclaration: true
+  #   ignoreFunction: # Ignore magic numbers in specific functions like composables
+  #     - 'androidx.compose.*'
+  #     - '*Preview'
+  #     - '*Screen'
+  #     - '*Component'
+  #     - '*Item'
+  #     - '*View'
+  #     - '*Layout'
+  #     - '*Effect'
+  #     - '*State'
+  #     - '*ViewModel'
+  #     - 'remember*'
+  #     - 'derivedStateOf'
+  #     - 'LaunchedEffect'
+  #     - 'DisposableEffect'
+  #     - 'SideEffect'
+  #     - 'produceState'
+  #     - 'animate*'
+  #     - 'tween'
+  #     - 'spring'
+  #     - 'keyframes'
+  #     - 'repeatable'
+  #     - 'infiniteRepeatable'
+  #     - 'snap'
+  # UnusedPrivateMember:
+  #   active: true
+  #   allowedNames: '.*Preview.*' # Allow unused members in Preview functions
+
+complexity:
+  active: true
+  # Example: Configure complexity rules
+  # LongMethod:
+  #   threshold: 60
+  # ComplexMethod:
+  #   threshold: 15
+
+performance:
+  active: true
+
+comments:
+  active: true
+  # CommentOverPrivateFunction:
+  #   active: false # Often desired for private functions too
+  # CommentOverPrivateProperty:
+  #   active: false
+
+naming:
+  active: true
+  # Example: Configure naming rules
+  # FunctionNaming:
+  #   functionPattern: '[a-zA-Z][a-zA-Z0-9]*' # Default allows PascalCase for Composables
+  # TopLevelPropertyNaming:
+  #   constantPattern: '[A-Z][A-Za-z0-9_]*' # Allow PascalCase for top-level Compose constants
+
+exceptions:
+  active: true
+  # TooGenericExceptionCaught:
+  #   active: true
+  #   exceptionNames: # Allow catching broader exceptions sometimes
+  #     - 'Exception'
+  #     - 'Throwable'
+
+coroutines: # Requires detekt-rules-coroutines dependency if not included by default
+  active: true
+
+# If using detekt-formatting (requires ktlint dependency)
+# formatting:
+#   active: true
+#   autoCorrect: true # Set to false if you only want reporting
+#   # Use default ktlint rules or specify custom ones
