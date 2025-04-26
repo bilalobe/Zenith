@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Location permissions -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
-    <!-- Notification permission for Android 13+ -->
+    
+    <!-- Notification permissions -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.BIND_QUICK_SETTINGS_TILE"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
 
     <application
         android:name=".ZenithApplication"
@@ -30,6 +36,54 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        
+        <!-- Register the activity transition receiver -->
+        <receiver 
+            android:name=".focus.ActivityTransitionReceiver"
+            android:exported="false" />
+
+        <!-- Declare FocusTileService -->
+        <service
+            android:name=".focus.FocusTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_focus_off"
+            android:label="@string/focus_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+             <!-- Optional: Add metadata for active tile mode if needed -->
+             <meta-data android:name="android.service.quicksettings.ACTIVE_TILE"
+                       android:value="true" />
+        </service>
+
+        <!-- Declare FocusControlService -->
+        <service
+            android:name=".focus.FocusControlService"
+            android:exported="false" /> <!-- Not exported, only used internally -->
+
+        <!-- Register the Glance Widget Receiver -->
+        <receiver
+            android:name=".widget.FocusWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/focus_widget_info" />
+        </receiver>
+
+        <!-- Widget configure activity -->
+        <activity
+            android:name=".ui.widget.FocusWidgetConfigureActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>
