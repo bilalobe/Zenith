@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+google-services.json
+.kotlin/errors
+*.png
+gradlew
+gradlew.bat
+
