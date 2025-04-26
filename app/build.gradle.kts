@@ -14,9 +14,8 @@ android {
 
     defaultConfig {
         applicationId = "com.zenithtasks"
-        minSdk = 24
-        //noinspection OldTargetApi
-        targetSdk = 35
+        minSdk = 31
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -24,6 +23,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        versionNameSuffix = "alcove"
     }
 
     buildTypes {
@@ -36,7 +36,7 @@ android {
         }
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -63,7 +63,6 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.functions.ktx)
 
-    // Core & Base UI (Keep activity-ktx, remove appcompat/material/constraintlayout if fully Compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.ktx) // Use activity-ktx
     implementation(libs.androidx.lifecycle.runtime.ktx) // Lifecycle runtime
@@ -73,11 +72,17 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material)
+
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
-    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.animation)
+        debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     // Data (Local - Room)
@@ -104,12 +109,16 @@ dependencies {
     testImplementation(libs.mockk.android) // Unit tests mocking
     testImplementation(libs.mockk.agent)   // Unit tests mocking
     testImplementation(libs.turbine)       // Flow testing
+    
+    // Coroutines testing
+    testImplementation(libs.kotlinx.coroutines.test)
+    
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom)) // Compose test BOM
     androidTestImplementation(libs.androidx.compose.ui.test.junit4) // Compose testing
     // Hilt testing dependencies (add if needed for instrumented tests)
-    // androidTestImplementation(libs.hilt.android.testing)
+    androidTestImplementation(libs.hilt.android.testing)
     kspAndroidTest(libs.hilt.compiler)
 }
 
@@ -117,5 +126,4 @@ dependencies {
 detekt {
     config.setFrom(files("$rootDir/detekt.yml")) // Point to your config file
     buildUponDefaultConfig = true // Use default config as a base
-    // source.setFrom(files("src/main/java", "src/main/kotlin")) // Usually inferred correctly
 }
