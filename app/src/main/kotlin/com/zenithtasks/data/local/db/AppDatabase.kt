@@ -1,39 +1,32 @@
-package com.zenithtasks.data.database
+package com.zenithtasks.data.local.db
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.zenithtasks.data.dao.LocationDao
-import com.zenithtasks.data.dao.TaskDao
+import com.zenithtasks.data.local.dao.FocusSessionDao
+import com.zenithtasks.data.local.dao.LocationDao
+import com.zenithtasks.data.local.dao.TaskDao
+import com.zenithtasks.data.local.entity.TaskEntity
+import com.zenithtasks.data.model.FocusSession
 import com.zenithtasks.data.model.Location
-import com.zenithtasks.data.model.Task
 
 /**
  * Main database for the application.
- * Defines the database configuration and serves as the app's main access point to persisted data.
  */
 @Database(
-    entities = [Task::class, Location::class],
+    entities = [TaskEntity::class, Location::class, FocusSession::class],
     version = 1,
     exportSchema = false
 )
-@TypeConverters(Converters::class)
+@TypeConverters(DateConverters::class)
 abstract class AppDatabase : RoomDatabase() {
-
-    /**
-     * Gets the DAO for Task operations.
-     */
     abstract fun taskDao(): TaskDao
-
-    /**
-     * Gets the DAO for Location operations.
-     */
     abstract fun locationDao(): LocationDao
+    abstract fun focusSessionDao(): FocusSessionDao
 
     companion object {
-        // Singleton prevents multiple instances of the database opening at the same time
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -45,14 +38,13 @@ abstract class AppDatabase : RoomDatabase() {
          * @return The singleton instance of the database
          */
         fun getInstance(context: Context): AppDatabase {
-            // If the instance is not null, return it, otherwise create the database
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "zenith_database"
                 )
-                    .fallbackToDestructiveMigration() // Wipes and rebuilds instead of migrating if no Migration object
+                    .fallbackToDestructiveMigration(false)
                     .build()
                 INSTANCE = instance
                 instance
