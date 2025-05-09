@@ -92,4 +92,10 @@ interface TaskDao {
      */
     @Query("UPDATE tasks SET reminderTriggered = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = :id")
     suspend fun markReminderAsTriggered(id: Long)
+    
+    /**
+     * Search tasks by title using a pattern match
+     */
+    @Query("SELECT * FROM tasks WHERE LOWER(title) LIKE :searchPattern AND isArchived = 0 ORDER BY dueDate ASC, priority DESC")
+    suspend fun searchByTitle(searchPattern: String): List<TaskEntity>
 }
