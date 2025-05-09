@@ -7,10 +7,11 @@ import android.util.Log
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofenceStatusCodes
 import com.google.android.gms.location.GeofencingEvent
-import com.zenithtasks.data.database.AppDatabase
+import com.zenithtasks.data.local.db.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -85,20 +86,18 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                 
                 Log.d(TAG, "Entered location: ${location.name}")
                 
-                // Get tasks for this location
-                val tasks = database.taskDao().getTasksByLocationFlow(locationId)
+                // Get tasks for this location - using first() to get the first emission from the Flow
+                val taskList = database.taskDao().getTasksByLocationId(locationId).first()
                 
-                // Collect tasks from the flow and process them
-                tasks.collect { taskList ->
-                    for (task in taskList) {
-                        if (!task.reminderTriggered && task.locationReminderEnabled && !task.isCompleted) {
-                            // Mark reminder as triggered
-                            database.taskDao().markReminderAsTriggered(task.id)
-                            
-                            // Show notification
-                            val notificationHelper = NotificationHelper(context)
-                            notificationHelper.showTaskNotification(task.id, task.title, location.name)
-                        }
+                // Process tasks
+                for (task in taskList) {
+                    if (!task.reminderTriggered && task.locationReminderEnabled && !task.isCompleted) {
+                        // Mark reminder as triggered
+                        database.taskDao().updateReminderTriggered(task.id, true)
+                        
+                        // Show notification
+                        val notificationHelper = NotificationHelper(context)
+                        notificationHelper.showTaskNotification(task.id, task.title, location.name)
                     }
                 }
             } catch (e: Exception) {

@@ -1,6 +1,7 @@
 package com.zenithtasks.location
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -8,7 +9,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
@@ -25,12 +25,12 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.zenithtasks.MainActivity
 import com.zenithtasks.R
-import com.zenithtasks.data.database.AppDatabase
-import com.zenithtasks.data.model.Location
+import com.zenithtasks.data.local.db.AppDatabase
 import com.zenithtasks.data.model.TaskWithLocation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -40,11 +40,11 @@ import kotlinx.coroutines.withContext
  */
 class LocationService : Service() {
 
-    private val TAG = "LocationService"
-    private val CHANNEL_ID = "location_channel"
-    private val NOTIFICATION_ID = 1
-    private val GEOFENCE_RADIUS_METERS = 100f
-    private val GEOFENCE_EXPIRATION_DURATION_MS = 24 * 60 * 60 * 1000L // 24 hours
+    private val tag = "LocationService"
+    private val locationChannelId = "location_channel"
+    private val foregroundServiceId = 1
+    private val geofenceRadiusMeters = 100f
+    private val geofenceExpirationMs = 24 * 60 * 60 * 1000L // 24 hours
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var geofencingClient: GeofencingClient
@@ -60,7 +60,7 @@ class LocationService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "LocationService created")
+        Log.d(tag, "LocationService created")
 
         // Initialize location clients
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -74,7 +74,7 @@ class LocationService : Service() {
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.lastLocation?.let { location ->
-                    Log.d(TAG, "Location update: ${location.latitude}, ${location.longitude}")
+                    Log.d(tag, "Location update: ${location.latitude}, ${location.longitude}")
                     // Check if we're near any of our saved locations
                     checkNearbyLocations(location)
                 }
@@ -90,18 +90,19 @@ class LocationService : Service() {
         )
     }
 
+    @SuppressLint("ForegroundServiceType")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "LocationService started")
+        Log.d(tag, "LocationService started")
 
         // Start as a foreground service with notification
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, locationChannelId)
             .setContentTitle("Zenith Tasks")
             .setContentText("Monitoring your location for task reminders")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        startForeground(foregroundServiceId, notification)
 
         // Request location updates
         requestLocationUpdates()
@@ -118,7 +119,7 @@ class LocationService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d(TAG, "LocationService destroyed")
+        Log.d(tag, "LocationService destroyed")
 
         // Stop location updates
         fusedLocationClient.removeLocationUpdates(locationCallback)
@@ -134,16 +135,14 @@ class LocationService : Service() {
      * Creates a notification channel for the foreground service.
      */
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Location Updates"
-            val descriptionText = "Channel for location update notifications"
-            val importance = NotificationManager.IMPORTANCE_LOW
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val name = "Location Updates"
+        val descriptionText = "Channel for location update notifications"
+        val importance = NotificationManager.IMPORTANCE_LOW
+        val channel = NotificationChannel(locationChannelId, name, importance).apply {
+            description = descriptionText
         }
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
     /**
@@ -158,7 +157,7 @@ class LocationService : Service() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.e(TAG, "Location permissions not granted")
+            Log.e(tag, "Location permissions not granted")
             return
         }
 
@@ -186,14 +185,14 @@ class LocationService : Service() {
                 val validTasksWithLocations = tasksWithLocations.filter { it.location != null }
 
                 if (validTasksWithLocations.isEmpty()) {
-                    Log.d(TAG, "No tasks with location reminders found")
+                    Log.d(tag, "No tasks with location reminders found")
                     return@launch
                 }
 
                 // Add geofences for each location
                 addGeofences(validTasksWithLocations)
             } catch (e: Exception) {
-                Log.e(TAG, "Error setting up geofences", e)
+                Log.e(tag, "Error setting up geofences", e)
             }
         }
     }
@@ -203,13 +202,13 @@ class LocationService : Service() {
      *
      * @param tasksWithLocations List of tasks with their associated locations
      */
-    private suspend fun addGeofences(tasksWithLocations: List<TaskWithLocation>) {
+    private fun addGeofences(tasksWithLocations: List<TaskWithLocation>) {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.e(TAG, "Fine location permission not granted")
+            Log.e(tag, "Fine location permission not granted")
             return
         }
 
@@ -220,16 +219,16 @@ class LocationService : Service() {
                     .setCircularRegion(
                         location.latitude,
                         location.longitude,
-                        GEOFENCE_RADIUS_METERS
+                        geofenceRadiusMeters
                     )
-                    .setExpirationDuration(GEOFENCE_EXPIRATION_DURATION_MS)
+                    .setExpirationDuration(geofenceExpirationMs)
                     .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
                     .build()
             }
         }
 
         if (geofenceList.isEmpty()) {
-            Log.d(TAG, "No valid geofences to add")
+            Log.d(tag, "No valid geofences to add")
             return
         }
 
@@ -240,9 +239,9 @@ class LocationService : Service() {
 
         try {
             geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)
-            Log.d(TAG, "Geofences added: ${geofenceList.size}")
+            Log.d(tag, "Geofences added: ${geofenceList.size}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to add geofences", e)
+            Log.e(tag, "Failed to add geofences", e)
         }
     }
 
@@ -256,7 +255,7 @@ class LocationService : Service() {
             try {
                 // Get all locations from the database
                 val locations = withContext(Dispatchers.IO) {
-                    database.locationDao().getAllLocations()
+                    database.locationDao().getAllLocationsList()
                 }
 
                 // Check each location
@@ -270,31 +269,31 @@ class LocationService : Service() {
                     val distance = currentLocation.distanceTo(locationPoint)
 
                     // If within the geofence radius, trigger notification
-                    if (distance <= GEOFENCE_RADIUS_METERS) {
-                        Log.d(TAG, "Near location: ${location.name}, distance: $distance meters")
+                    if (distance <= geofenceRadiusMeters) {
+                        Log.d(tag, "Near location: ${location.name}, distance: $distance meters")
 
                         // Get tasks for this location
-                        val tasksFlow = database.taskDao().getTasksByLocationFlow(location.id)
+                        val tasks = withContext(Dispatchers.IO) {
+                            database.taskDao().getTasksByLocationFlow(location.id).first()
+                        }
 
-                        // Collect tasks from the flow and process them
-                        tasksFlow.collect { taskList ->
-                            for (task in taskList) {
-                                if (!task.reminderTriggered && task.locationReminderEnabled && !task.isCompleted) {
-                                    // Mark reminder as triggered
-                                    withContext(Dispatchers.IO) {
-                                        database.taskDao().markReminderAsTriggered(task.id)
-                                    }
-
-                                    // Show notification using NotificationHelper
-                                    val notificationHelper = NotificationHelper(this@LocationService)
-                                    notificationHelper.showTaskNotification(task.id, task.title, location.name)
+                        // Process each task
+                        for (task in tasks) {
+                            if (!task.reminderTriggered && task.locationReminderEnabled && !task.isCompleted) {
+                                // Mark reminder as triggered
+                                withContext(Dispatchers.IO) {
+                                    database.taskDao().markReminderAsTriggered(task.id)
                                 }
+
+                                // Show notification using NotificationHelper
+                                val notificationHelper = NotificationHelper(this@LocationService)
+                                notificationHelper.showTaskNotification(task.id, task.title, location.name)
                             }
                         }
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error checking nearby locations", e)
+                Log.e(tag, "Error checking nearby locations", e)
             }
         }
     }
@@ -307,7 +306,7 @@ class LocationService : Service() {
      * @param locationName The name of the location
      */
     private fun showTaskNotification(taskId: Long, taskTitle: String, locationName: String) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         // Create intent to open the task details
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -320,7 +319,7 @@ class LocationService : Service() {
         )
 
         // Build the notification
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, locationChannelId)
             .setContentTitle("Task Reminder: $taskTitle")
             .setContentText("You're at $locationName")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -341,11 +340,7 @@ class LocationService : Service() {
          */
         fun startService(context: Context) {
             val intent = Intent(context, LocationService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
 
         /**
