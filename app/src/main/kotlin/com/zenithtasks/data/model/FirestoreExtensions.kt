@@ -55,12 +55,12 @@ fun DocumentSnapshot.toTask(): Task? {
             locationId = getLong("locationId"),
             locationReminderEnabled = getBoolean("locationReminderEnabled") == true,
             completedDate = getDate("completedDate") ?: Date(),
-            reminderTriggered = getBoolean("reminderTriggered") ?: false,
+            reminderTriggered = getBoolean("reminderTriggered") == true,
             firebaseId = id.toString(),
             lastSyncedAt = Date(),
             reminder = getDate("reminder"),
             pendingSync = false,
-            isArchived = getBoolean("isArchived") ?: false,
+            isArchived = getBoolean("isArchived") == true,
             energyLevel = energyLevel,
             priority = priority
         )
