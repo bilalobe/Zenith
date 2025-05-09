@@ -1,2 +1,3 @@
-package com.zenithtasks.widget 
+package com.zenithtasks.widget
 
+annotation class FocusShortcutsService
